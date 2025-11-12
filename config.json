@@ -145,10 +145,6 @@
       "api": "https://pg.fenwe078.cf/api.php/provide/vod/",
       "name": "四圈资源"
     },
-    "qgheimuer2": {
-      "api": "https://json-api.heimuer.xyz/api/list",
-      "name": "黑木耳"
-    },
     "qgxinlang": {
       "api": "https://api.xinlangapi.com/xinlangapi.php/provide/vod/",
       "name": "新浪资源"
@@ -160,59 +156,6 @@
     "qgyouzhiziyuanku": {
       "api": "https://api.yzzy-api.com/inc/api_mac10_all.php",
       "name": "优质资源库"
-    },
-    "qgtaopian": {
-      "api": "https://taopianapi.com/cjapi/mc10/vod/json.html",
-      "name": "淘片资源网"
-    },
-    "qguku": {
-      "api": "https://api.ukuapi88.com/api.php/provide/vod/?ac=list",
-      "name": "U酷资源网"
-    },
-    "qg115": {
-      "api": "https://155api.com/api.php/provide/vod/?ac=list",
-      "name": "115资源站"
-    },
-    "qgtaohua": {
-      "api": "https://thzy1.me/api.php/provide/vod/?ac=list",
-      "name": "桃花资源采集"
-    },
-    "qgaosika": {
-      "api": "https://aosikazy.com/api.php/provide/vod/?ac=list",
-      "name": "奥斯卡资源站"
-    },
-    "qgsenlin": {
-      "api": "https://slapibf.com/api.php/provide/vod/?ac=list",
-      "name": "森林资源"
-    },
-    "qgnaixiangxiang": {
-      "api": "https://naixxzy.com/api.php/provide/vod/?ac=list",
-      "name": "奶香香资源站"
-    },
-    "qgshayu": {
-      "api": "https://shayuzy5.com/api.php/provide/vod/",
-      "name": "鲨鱼资源"
-    },
-    "qgfanhao": {
-      "api": "http://fhapi9.com/api.php/provide/vod/at/json/?ac=list",
-      "name": "番号资源站"
-    },
-    "qgjkun": {
-      "api": "https://jkunzyapi.com/api.php/provide/vod",
-      "name": "JKUN资源站"
-    },
-    "qgdidi": {
-      "api": "https://api.ddapi.cc/api.php/provide/vod/?ac=list",
-      "name": "滴滴资源站"
-    },
-    "qghaiwaikan": {
-        "name": "海外看资源",
-        "api": "https://haiwaikan.com/api.php/provide/vod/"
-    },
-    "qgikun": {
-        "name": "Ikun资源",
-        "api": "https://www.ikunzy.com/api.php/provide/vod",
-        "detail": "https://www.ikunzy.com/"
     }
   }
 }
