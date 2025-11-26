@@ -3,6 +3,7 @@
 'use client';
 
 import Artplayer from 'artplayer';
+import artplayerPluginDanmuku from 'artplayer-plugin-danmuku';
 import Hls from 'hls.js';
 import { Heart } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -48,6 +49,10 @@ function PlayPageClient() {
 
   // 收藏状态
   const [favorited, setFavorited] = useState(false);
+
+  // 弹幕url状态
+  const [danmuUrl, setDanmuUrl] = useState('');
+  const damuApi = 'https://exquisite-treacle-8c31e3.netlify.app/api/v2';
 
   // 去广告开关（从 localStorage 继承，默认 true）
   const [blockAdEnabled, setBlockAdEnabled] = useState<boolean>(() => {
@@ -869,6 +874,18 @@ function PlayPageClient() {
     }
   };
 
+  const updateDanmuUrl = async () => {
+    const params = new URLSearchParams({
+      anime: videoTitle,
+      episode: (currentEpisodeIndex + 1).toString(),
+    });
+    const response = await fetch(`${damuApi}/search/episodes?${params}`);
+    const data = await response.json();
+
+    const episodeId = data.animes?.[0]?.episodes?.[0]?.episodeId;
+    setDanmuUrl(`${damuApi}/comment/${episodeId}?format=xml`);
+  };
+
   useEffect(() => {
     // 页面即将卸载时保存播放进度
     const handleBeforeUnload = () => {
@@ -886,6 +903,8 @@ function PlayPageClient() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // 更新弹幕连接
+    updateDanmuUrl();
     return () => {
       // 清理事件监听器
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -1026,7 +1045,6 @@ function PlayPageClient() {
       artPlayerRef.current.destroy();
       artPlayerRef.current = null;
     }
-
     try {
       // 创建新的播放器实例
       Artplayer.PLAYBACK_RATE = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
@@ -1151,6 +1169,11 @@ function PlayPageClient() {
               return newVal ? '当前开启' : '当前关闭';
             },
           },
+        ],
+        plugins: [
+          artplayerPluginDanmuku({
+            danmuku: danmuUrl,
+          }),
         ],
         // 控制栏配置
         controls: [
