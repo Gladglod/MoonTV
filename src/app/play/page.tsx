@@ -448,9 +448,10 @@ function PlayPageClient() {
     }
   }
 
-  // 当集数索引变化时自动更新视频地址
+  // 当集数索引变化时自动更新视频地址和弹幕地址
   useEffect(() => {
     updateVideoUrl(detail, currentEpisodeIndex);
+    updateDanmuUrl();
   }, [detail, currentEpisodeIndex]);
 
   // 进入页面时直接获取全部源信息
@@ -904,7 +905,6 @@ function PlayPageClient() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 更新弹幕连接
-    updateDanmuUrl();
     return () => {
       // 清理事件监听器
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -1032,6 +1032,10 @@ function PlayPageClient() {
           artPlayerRef.current.video as HTMLVideoElement,
           videoUrl
         );
+        artPlayerRef.current.plugins.artplayerPluginDanmuku.config({
+          danmuku: danmuUrl,
+        });
+        artPlayerRef.current.plugins.artplayerPluginDanmuku.load();
       }
       return;
     }
