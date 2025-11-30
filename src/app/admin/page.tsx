@@ -987,8 +987,8 @@ const DanmuScourceConfig = ({
 
   // 初始化
   useEffect(() => {
-    if (config?.SourceConfig) {
-      setSources(config.SourceConfig);
+    if (config?.DanmuConfig) {
+      setSources(config.DanmuConfig);
       // 进入时重置 orderChanged
       setOrderChanged(false);
     }
@@ -1469,6 +1469,7 @@ function AdminPageClient() {
     userConfig: false,
     videoSource: false,
     siteConfig: false,
+    danmuSource: false,
   });
 
   // 获取管理员配置
@@ -1632,8 +1633,8 @@ function AdminPageClient() {
               icon={
                 <Video size={20} className='text-gray-600 dark:text-gray-400' />
               }
-              isExpanded={expandedTabs.videoSource}
-              onToggle={() => toggleTab('videoSource')}
+              isExpanded={expandedTabs.danmuSource}
+              onToggle={() => toggleTab('danmuSource')}
             >
               <DanmuScourceConfig config={config} refreshConfig={fetchConfig} />
             </CollapsibleTab>

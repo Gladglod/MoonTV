@@ -526,6 +526,7 @@ function PlayPageClient() {
         }
         return [];
       } catch (error) {
+        console.log(error);
         return [];
       } finally {
         // setDanmuExist(false);
@@ -554,7 +555,7 @@ function PlayPageClient() {
       }
       const danmuInfo = await fetchDanmuData(searchTitle || videoTitle);
       setDanmuData(danmuInfo);
-
+      console.log(danmuData);
       let needLoadSource = currentSource;
       let needLoadId = currentId;
       if ((!currentSource && !currentId) || needPreferRef.current) {

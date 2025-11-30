@@ -362,7 +362,7 @@ export async function searchFromDanmuApi(
 
     // 添加超时处理
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const response = await fetch(apiUrl, {
       headers: API_CONFIG.danmuSearch.headers,
       signal: controller.signal,
