@@ -157,5 +157,11 @@
       "api": "https://api.yzzy-api.com/inc/api_mac10_all.php",
       "name": "优质资源库"
     }
+  },
+  "danmu_api_site": {
+    "netlify": {
+      "api": "https://exquisite-treacle-8c31e3.netlify.app/api/v2",
+      "name": "netlify"
+    }
   }
 }

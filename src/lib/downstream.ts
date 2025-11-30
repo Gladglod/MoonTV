@@ -1,5 +1,5 @@
-import { API_CONFIG, ApiSite, getConfig } from '@/lib/config';
-import { SearchResult } from '@/lib/types';
+import { API_CONFIG, ApiSite, DanmuSite, getConfig } from '@/lib/config';
+import { DanmuResult, EpisodeItem, SearchResult } from '@/lib/types';
 import { cleanHtmlTags } from '@/lib/utils';
 
 interface ApiSearchItem {
@@ -13,6 +13,12 @@ interface ApiSearchItem {
   vod_content?: string;
   vod_douban_id?: number;
   type_name?: string;
+}
+
+interface ApiDanmuSearchItem {
+  animeId: number;
+  animeTitle: string;
+  episodes: EpisodeItem[];
 }
 
 export async function searchFromApi(
@@ -341,4 +347,53 @@ async function handleSpecialSourceDetail(
     type_name: '',
     douban_id: 0,
   };
+}
+
+// 弹幕相关
+
+export async function searchFromDanmuApi(
+  danmuSite: DanmuSite,
+  query: string
+): Promise<DanmuResult[]> {
+  try {
+    const apiBaseUrl = danmuSite.api;
+    const apiUrl =
+      apiBaseUrl + API_CONFIG.danmuSearch.path + encodeURIComponent(query);
+
+    // 添加超时处理
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(apiUrl, {
+      headers: API_CONFIG.danmuSearch.headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    const animes = data['animes'];
+    if (!animes || !Array.isArray(animes) || animes.length === 0) {
+      return [];
+    }
+    // 处理第一页结果
+    const results = animes.map((item: ApiDanmuSearchItem) => {
+      // const episodes = {
+      //   episodeId: item.episodes['episodeId'],
+      //   episodeTitle: item.episodes['episodeTitle']
+      // }
+      return {
+        id: item.animeId.toString(),
+        title: item.animeTitle,
+        episodes: item.episodes,
+      };
+    });
+
+    return results;
+  } catch (error) {
+    return [];
+  }
 }

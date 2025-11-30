@@ -21,6 +21,14 @@ export interface AdminConfig {
     from: 'config' | 'custom';
     disabled?: boolean;
   }[];
+  DanmuConfig: {
+    key: string;
+    api: string;
+    name: string;
+    detail?: string;
+    from: 'config' | 'custom';
+    disabled?: boolean;
+  }[];
 }
 
 export interface AdminConfigResult {

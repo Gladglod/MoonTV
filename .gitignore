@@ -39,3 +39,4 @@ next-env.d.ts
 # next-sitemap
 sitemap.xml
 sitemap-*.xml
+.vscode/launch.json

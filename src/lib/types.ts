@@ -81,6 +81,18 @@ export interface SearchResult {
   douban_id?: number;
 }
 
+export interface EpisodeItem {
+  episodeId: number;
+  episodeTitle: string;
+}
+
+// 弹幕搜索结果数据结构
+export interface DanmuResult {
+  id: string;
+  title: string;
+  episodes: EpisodeItem[];
+}
+
 // 豆瓣数据结构
 export interface DoubanItem {
   id: string;

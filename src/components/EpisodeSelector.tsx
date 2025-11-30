@@ -9,9 +9,10 @@ import React, {
   useState,
 } from 'react';
 
-import { SearchResult } from '@/lib/types';
+import { DanmuResult, SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
+import DanmuSelector from '@/components/DanmuSelector';
 // 定义视频信息类型
 interface VideoInfo {
   quality: string;
@@ -27,6 +28,8 @@ interface EpisodeSelectorProps {
   episodesPerPage?: number;
   /** 当前选中的集数（1 开始） */
   value?: number;
+  /** 用户点击弹幕后的回调 */
+  onDanmuChange?: (danmuId: number) => void;
   /** 用户点击选集后的回调 */
   onChange?: (episodeNumber: number) => void;
   /** 换源相关 */
@@ -40,6 +43,7 @@ interface EpisodeSelectorProps {
   sourceSearchError?: string | null;
   /** 预计算的测速结果，避免重复测速 */
   precomputedVideoInfo?: Map<string, VideoInfo>;
+  danmuData: DanmuResult[];
 }
 
 /**
@@ -53,11 +57,13 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   onSourceChange,
   currentSource,
   currentId,
+  onDanmuChange,
   videoTitle,
   availableSources = [],
   sourceSearchLoading = false,
   sourceSearchError = null,
   precomputedVideoInfo,
+  danmuData = [],
 }) => {
   const router = useRouter();
   const pageCount = Math.ceil(totalEpisodes / episodesPerPage);
@@ -69,6 +75,10 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   const [attemptedSources, setAttemptedSources] = useState<Set<string>>(
     new Set()
   );
+
+  // 弹幕信息
+  const [currentDanmuId, setCurrentDanmuId] = useState<number | undefined>();
+  const [danmuSearchLoading, setDanmuSearchLoading] = useState(false);
 
   // 使用 ref 来避免闭包问题
   const attemptedSourcesRef = useRef<Set<string>>(new Set());
@@ -83,9 +93,13 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
     videoInfoMapRef.current = videoInfoMap;
   }, [videoInfoMap]);
 
+  useEffect(() => {
+    if (currentDanmuId) setDanmuSearchLoading(false);
+  }, [currentDanmuId]);
+
   // 主要的 tab 状态：'episodes' 或 'sources'
   // 当只有一集时默认展示 "换源"，并隐藏 "选集" 标签
-  const [activeTab, setActiveTab] = useState<'episodes' | 'sources'>(
+  const [activeTab, setActiveTab] = useState<'episodes' | 'sources' | 'danmu'>(
     totalEpisodes > 1 ? 'episodes' : 'sources'
   );
 
@@ -244,6 +258,13 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
     [onChange]
   );
 
+  const handleDanmuClilck = useCallback(
+    (danmuId: number) => {
+      onDanmuChange?.(danmuId);
+    },
+    [onDanmuChange]
+  );
+
   const handleSourceClick = useCallback(
     (source: SearchResult) => {
       onSourceChange?.(source.source, source.id, source.title);
@@ -278,14 +299,26 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
         <div
           onClick={handleSourceTabClick}
           className={`flex-1 py-3 px-6 text-center cursor-pointer transition-all duration-200 font-medium
+              ${
+                activeTab === 'sources'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-gray-700 hover:text-green-600 bg-black/5 dark:bg-white/5 dark:text-gray-300 dark:hover:text-green-400 hover:bg-black/3 dark:hover:bg-white/3'
+              }
+            `.trim()}
+        >
+          换源
+        </div>
+        <div
+          onClick={() => setActiveTab('danmu')}
+          className={`flex-1 py-3 px-6 text-center cursor-pointer transition-all duration-200 font-medium
             ${
-              activeTab === 'sources'
+              activeTab === 'danmu'
                 ? 'text-green-600 dark:text-green-400'
                 : 'text-gray-700 hover:text-green-600 bg-black/5 dark:bg-white/5 dark:text-gray-300 dark:hover:text-green-400 hover:bg-black/3 dark:hover:bg-white/3'
             }
           `.trim()}
         >
-          换源
+          弹幕
         </div>
       </div>
 
@@ -574,6 +607,20 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
               </div>
             )}
         </div>
+      )}
+
+      {/* { 弹幕 Tab 内容 } */}
+      {activeTab === 'danmu' && (
+        <DanmuSelector
+          value={currentDanmuId} // 你在父组件里的 state
+          onChange={(id: number) => {
+            setCurrentDanmuId(id);
+            handleDanmuClilck(id);
+            // 这里去切换弹幕源，或者通知播放器
+          }}
+          danmuSources={danmuData} // fetchDanmuData 之后的结果
+          danmuSearchLoading={danmuSearchLoading}
+        />
       )}
     </div>
   );

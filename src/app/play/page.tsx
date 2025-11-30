@@ -19,7 +19,7 @@ import {
   savePlayRecord,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
-import { SearchResult } from '@/lib/types';
+import { DanmuResult, SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
 import EpisodeSelector from '@/components/EpisodeSelector';
@@ -51,8 +51,11 @@ function PlayPageClient() {
   const [favorited, setFavorited] = useState(false);
 
   // 弹幕url状态
+  const [danmuData, setDanmuData] = useState<DanmuResult[]>([]);
+  const [danmuId, setDanmuId] = useState(0);
   const [danmuUrl, setDanmuUrl] = useState('');
-  const damuApi = 'https://exquisite-treacle-8c31e3.netlify.app/api/v2';
+  const danmuApi = 'https://exquisite-treacle-8c31e3.netlify.app/api/v2';
+  // const [danmuExist, setDanmuExist] = useState(false);
 
   // 去广告开关（从 localStorage 继承，默认 true）
   const [blockAdEnabled, setBlockAdEnabled] = useState<boolean>(() => {
@@ -76,7 +79,6 @@ function PlayPageClient() {
     searchParams.get('source') || ''
   );
   const [currentId, setCurrentId] = useState(searchParams.get('id') || '');
-
   // 搜索所需信息
   const [searchTitle] = useState(searchParams.get('stitle') || '');
   const [searchType] = useState(searchParams.get('stype') || '');
@@ -451,7 +453,6 @@ function PlayPageClient() {
   // 当集数索引变化时自动更新视频地址和弹幕地址
   useEffect(() => {
     updateVideoUrl(detail, currentEpisodeIndex);
-    updateDanmuUrl();
   }, [detail, currentEpisodeIndex]);
 
   // 进入页面时直接获取全部源信息
@@ -509,6 +510,28 @@ function PlayPageClient() {
       }
     };
 
+    // 获取弹幕信息
+    const fetchDanmuData = async (query: string): Promise<DanmuResult[]> => {
+      try {
+        const response = await fetch(
+          `/api/danmu?q=${encodeURIComponent(query.trim())}`
+        );
+        if (!response.ok) {
+          throw new Error('搜索失败');
+        }
+        const data = await response.json();
+
+        if (data.length !== 0) {
+          return data.results;
+        }
+        return [];
+      } catch (error) {
+        return [];
+      } finally {
+        // setDanmuExist(false);
+      }
+    };
+
     const initAll = async () => {
       if (!currentSource && !currentId && !videoTitle && !searchTitle) {
         setError('缺少必要参数');
@@ -529,6 +552,8 @@ function PlayPageClient() {
         setLoading(false);
         return;
       }
+      const danmuInfo = await fetchDanmuData(searchTitle || videoTitle);
+      setDanmuData(danmuInfo);
 
       let needLoadSource = currentSource;
       let needLoadId = currentId;
@@ -875,16 +900,38 @@ function PlayPageClient() {
     }
   };
 
-  const updateDanmuUrl = async () => {
-    const params = new URLSearchParams({
-      anime: videoTitle,
-      episode: (currentEpisodeIndex + 1).toString(),
-    });
-    const response = await fetch(`${damuApi}/search/episodes?${params}`);
-    const data = await response.json();
+  useEffect(() => {
+    // const buildUrl =  async () => {
+    //   const danmuApis = await getAvailableDanmuApiSites();
+    //   return danmuApis[0].api;
+    // }
+    // const api = buildUrl();
+    if (danmuId > 0) {
+      const url = `${danmuApi}/comment/${danmuId}?format=xml`;
+      setDanmuUrl(url);
+      console.log('更新弹幕：', url);
+    }
+  }, [danmuId]);
 
-    const episodeId = data.animes?.[0]?.episodes?.[0]?.episodeId;
-    setDanmuUrl(`${damuApi}/comment/${episodeId}?format=xml`);
+  useEffect(() => {
+    if (artPlayerRef.current) {
+      artPlayerRef.current.plugins.artplayerPluginDanmuku.config({
+        danmuku: danmuUrl,
+      });
+      artPlayerRef.current.plugins.artplayerPluginDanmuku.load();
+      console.log('重载弹幕');
+    }
+  }, [danmuUrl]);
+
+  // 弹幕处理
+  const handleDanmuChange = (danmuId: number) => {
+    if (danmuId >= 0) {
+      // 在更换集数前保存当前播放进度
+      // if (artPlayerRef.current && artPlayerRef.current.paused) {
+      //   saveCurrentPlayProgress();
+      // }
+      setDanmuId(danmuId);
+    }
   };
 
   useEffect(() => {
@@ -1036,6 +1083,7 @@ function PlayPageClient() {
           danmuku: danmuUrl,
         });
         artPlayerRef.current.plugins.artplayerPluginDanmuku.load();
+        console.log('重载弹幕');
       }
       return;
     }
@@ -1176,7 +1224,7 @@ function PlayPageClient() {
         ],
         plugins: [
           artplayerPluginDanmuku({
-            danmuku: danmuUrl,
+            danmuku: '',
           }),
         ],
         // 控制栏配置
@@ -1578,11 +1626,13 @@ function PlayPageClient() {
                 onSourceChange={handleSourceChange}
                 currentSource={currentSource}
                 currentId={currentId}
+                onDanmuChange={handleDanmuChange}
                 videoTitle={searchTitle || videoTitle}
                 availableSources={availableSources}
                 sourceSearchLoading={sourceSearchLoading}
                 sourceSearchError={sourceSearchError}
                 precomputedVideoInfo={precomputedVideoInfo}
+                danmuData={danmuData}
               />
             </div>
           </div>

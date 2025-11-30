@@ -12,10 +12,20 @@ export interface ApiSite {
   detail?: string;
 }
 
+export interface DanmuSite {
+  key: string;
+  api: string;
+  name: string;
+  detail?: string;
+}
+
 interface ConfigFileStruct {
   cache_time?: number;
   api_site: {
     [key: string]: ApiSite;
+  };
+  danmu_api_site: {
+    [key: string]: DanmuSite;
   };
 }
 
@@ -31,6 +41,15 @@ export const API_CONFIG = {
   },
   detail: {
     path: '?ac=videolist&ids=',
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      Accept: 'application/json',
+    },
+  },
+  danmuSearch: {
+    path: '/search/episodes?anime=',
+    pagePath: '/search/episodes?anime={query}&episode={page}',
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -88,6 +107,7 @@ async function initConfig() {
 
       // 从文件中获取源信息，用于补全源
       const apiSiteEntries = Object.entries(fileConfig.api_site);
+      const danmuApiSiteEntiries = Object.entries(fileConfig.danmu_api_site);
 
       if (adminConfig) {
         // 补全 SourceConfig
@@ -173,6 +193,14 @@ async function initConfig() {
             from: 'config',
             disabled: false,
           })),
+          DanmuConfig: danmuApiSiteEntiries.map(([key, site]) => ({
+            key,
+            name: site.name,
+            api: site.api,
+            detail: site.detail,
+            from: 'config',
+            disabled: false,
+          })),
         };
       }
 
@@ -210,6 +238,16 @@ async function initConfig() {
         from: 'config',
         disabled: false,
       })),
+      DanmuConfig: Object.entries(fileConfig.danmu_api_site).map(
+        ([key, site]) => ({
+          key,
+          name: site.name,
+          api: site.api,
+          detail: site.detail,
+          from: 'config',
+          disabled: false,
+        })
+      ),
     } as AdminConfig;
   }
 }
@@ -309,6 +347,17 @@ export async function getCacheTime(): Promise<number> {
 export async function getAvailableApiSites(): Promise<ApiSite[]> {
   const config = await getConfig();
   return config.SourceConfig.filter((s) => !s.disabled).map((s) => ({
+    key: s.key,
+    name: s.name,
+    api: s.api,
+    detail: s.detail,
+  }));
+}
+
+export async function getAvailableDanmuApiSites(): Promise<DanmuSite[]> {
+  // todo
+  const config = await getConfig();
+  return config.DanmuConfig.filter((s) => !s.disabled).map((s) => ({
     key: s.key,
     name: s.name,
     api: s.api,

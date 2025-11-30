@@ -62,6 +62,16 @@ interface DataSource {
   from: 'config' | 'custom';
 }
 
+// 弹幕源数据类型
+interface DanmuSource {
+  name: string;
+  key: string;
+  api: string;
+  detail?: string;
+  disabled?: boolean;
+  from: 'config' | 'custom';
+}
+
 // 可折叠标签组件
 interface CollapsibleTabProps {
   title: string;
@@ -940,6 +950,346 @@ const VideoSourceConfig = ({
   );
 };
 
+// 弹幕源配置组件
+const DanmuScourceConfig = ({
+  config,
+  refreshConfig,
+}: {
+  config: AdminConfig | null;
+  refreshConfig: () => Promise<void>;
+}) => {
+  const [sources, setSources] = useState<DanmuSource[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [orderChanged, setOrderChanged] = useState(false);
+  const [newSource, setNewSource] = useState<DanmuSource>({
+    name: '',
+    key: '',
+    api: '',
+    detail: '',
+    disabled: false,
+    from: 'config',
+  });
+
+  // dnd-kit 传感器
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 轻微位移即可触发
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150, // 长按 150ms 后触发，避免与滚动冲突
+        tolerance: 5,
+      },
+    })
+  );
+
+  // 初始化
+  useEffect(() => {
+    if (config?.SourceConfig) {
+      setSources(config.SourceConfig);
+      // 进入时重置 orderChanged
+      setOrderChanged(false);
+    }
+  }, [config]);
+
+  // 通用 API 请求
+  const callSourceApi = async (body: Record<string, any>) => {
+    try {
+      const resp = await fetch('/api/admin/danmu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body }),
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.error || `操作失败: ${resp.status}`);
+      }
+
+      // 成功后刷新配置
+      await refreshConfig();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '操作失败');
+      throw err; // 向上抛出方便调用处判断
+    }
+  };
+
+  const handleToggleEnable = (key: string) => {
+    const target = sources.find((s) => s.key === key);
+    if (!target) return;
+    const action = target.disabled ? 'enable' : 'disable';
+    callSourceApi({ action, key }).catch(() => {
+      console.error('操作失败', action, key);
+    });
+  };
+
+  const handleDelete = (key: string) => {
+    callSourceApi({ action: 'delete', key }).catch(() => {
+      console.error('操作失败', 'delete', key);
+    });
+  };
+
+  const handleAddSource = () => {
+    if (!newSource.name || !newSource.key || !newSource.api) return;
+    callSourceApi({
+      action: 'add',
+      key: newSource.key,
+      name: newSource.name,
+      api: newSource.api,
+      detail: newSource.detail,
+    })
+      .then(() => {
+        setNewSource({
+          name: '',
+          key: '',
+          api: '',
+          detail: '',
+          disabled: false,
+          from: 'custom',
+        });
+        setShowAddForm(false);
+      })
+      .catch(() => {
+        console.error('操作失败', 'add', newSource);
+      });
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sources.findIndex((s) => s.key === active.id);
+    const newIndex = sources.findIndex((s) => s.key === over.id);
+    setSources((prev) => arrayMove(prev, oldIndex, newIndex));
+    setOrderChanged(true);
+  };
+
+  const handleSaveOrder = () => {
+    const order = sources.map((s) => s.key);
+    callSourceApi({ action: 'sort', order })
+      .then(() => {
+        setOrderChanged(false);
+      })
+      .catch(() => {
+        console.error('操作失败', 'sort', order);
+      });
+  };
+
+  // 可拖拽行封装 (dnd-kit)
+  const DraggableRow = ({ source }: { source: DanmuSource }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } =
+      useSortable({ id: source.key });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    } as React.CSSProperties;
+
+    return (
+      <tr
+        ref={setNodeRef}
+        style={style}
+        className='hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors select-none'
+      >
+        <td
+          className='px-2 py-4 cursor-grab text-gray-400'
+          style={{ touchAction: 'none' }}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={16} />
+        </td>
+        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
+          {source.name}
+        </td>
+        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
+          {source.key}
+        </td>
+        <td
+          className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 max-w-[12rem] truncate'
+          title={source.api}
+        >
+          {source.api}
+        </td>
+        <td
+          className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 max-w-[8rem] truncate'
+          title={source.detail || '-'}
+        >
+          {source.detail || '-'}
+        </td>
+        <td className='px-6 py-4 whitespace-nowrap max-w-[1rem]'>
+          <span
+            className={`px-2 py-1 text-xs rounded-full ${
+              !source.disabled
+                ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+            }`}
+          >
+            {!source.disabled ? '启用中' : '已禁用'}
+          </span>
+        </td>
+        <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
+          <button
+            onClick={() => handleToggleEnable(source.key)}
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${
+              !source.disabled
+                ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60'
+                : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60'
+            } transition-colors`}
+          >
+            {!source.disabled ? '禁用' : '启用'}
+          </button>
+          {source.from !== 'config' && (
+            <button
+              onClick={() => handleDelete(source.key)}
+              className='inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700/40 dark:hover:bg-gray-700/60 dark:text-gray-200 transition-colors'
+            >
+              删除
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  if (!config) {
+    return (
+      <div className='text-center text-gray-500 dark:text-gray-400'>
+        加载中...
+      </div>
+    );
+  }
+
+  return (
+    <div className='space-y-6'>
+      {/* 添加弹幕源表单 */}
+      <div className='flex items-center justify-between'>
+        <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+          弹幕源列表
+        </h4>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className='px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors'
+        >
+          {showAddForm ? '取消' : '添加弹幕源'}
+        </button>
+      </div>
+
+      {showAddForm && (
+        <div className='p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            <input
+              type='text'
+              placeholder='名称'
+              value={newSource.name}
+              onChange={(e) =>
+                setNewSource((prev) => ({ ...prev, name: e.target.value }))
+              }
+              className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+            />
+            <input
+              type='text'
+              placeholder='Key'
+              value={newSource.key}
+              onChange={(e) =>
+                setNewSource((prev) => ({ ...prev, key: e.target.value }))
+              }
+              className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+            />
+            <input
+              type='text'
+              placeholder='API 地址'
+              value={newSource.api}
+              onChange={(e) =>
+                setNewSource((prev) => ({ ...prev, api: e.target.value }))
+              }
+              className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+            />
+            <input
+              type='text'
+              placeholder='Detail 地址（选填）'
+              value={newSource.detail}
+              onChange={(e) =>
+                setNewSource((prev) => ({ ...prev, detail: e.target.value }))
+              }
+              className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+            />
+          </div>
+          <div className='flex justify-end'>
+            <button
+              onClick={handleAddSource}
+              disabled={!newSource.name || !newSource.key || !newSource.api}
+              className='w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors'
+            >
+              添加
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 弹幕源表格 */}
+      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto'>
+        <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
+          <thead className='bg-gray-50 dark:bg-gray-900'>
+            <tr>
+              <th className='w-8' />
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                名称
+              </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                Key
+              </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                API 地址
+              </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                Detail 地址
+              </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                状态
+              </th>
+              <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                操作
+              </th>
+            </tr>
+          </thead>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+            autoScroll={false}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          >
+            <SortableContext
+              items={sources.map((s) => s.key)}
+              strategy={verticalListSortingStrategy}
+            >
+              <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
+                {sources.map((source) => (
+                  <DraggableRow key={source.key} source={source} />
+                ))}
+              </tbody>
+            </SortableContext>
+          </DndContext>
+        </table>
+      </div>
+
+      {/* 保存排序按钮 */}
+      {orderChanged && (
+        <div className='flex justify-end'>
+          <button
+            onClick={handleSaveOrder}
+            className='px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors'
+          >
+            保存排序
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // 新增站点配置组件
 const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
   const [siteSettings, setSiteSettings] = useState<SiteConfig>({
@@ -1274,6 +1624,18 @@ function AdminPageClient() {
               onToggle={() => toggleTab('videoSource')}
             >
               <VideoSourceConfig config={config} refreshConfig={fetchConfig} />
+            </CollapsibleTab>
+
+            {/* {弹幕源配置标签} */}
+            <CollapsibleTab
+              title='弹幕源配置'
+              icon={
+                <Video size={20} className='text-gray-600 dark:text-gray-400' />
+              }
+              isExpanded={expandedTabs.videoSource}
+              onToggle={() => toggleTab('videoSource')}
+            >
+              <DanmuScourceConfig config={config} refreshConfig={fetchConfig} />
             </CollapsibleTab>
           </div>
         </div>
