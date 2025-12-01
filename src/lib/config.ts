@@ -135,6 +135,32 @@ async function initConfig() {
           }
         });
 
+        // 补全 DanmuConfig
+        const danmuExisted = new Set(
+          (adminConfig.DanmuConfig || []).map((s) => s.key)
+        );
+        danmuApiSiteEntiries.forEach(([key, site]) => {
+          if (!danmuExisted.has(key)) {
+            adminConfig!.DanmuConfig.push({
+              key,
+              name: site.name,
+              api: site.api,
+              detail: site.detail,
+              from: 'config',
+              disabled: false,
+            });
+          }
+        });
+        // 检查现有源是否在 fileConfig.danmu_api_site 中，如果不在则标记为 custom
+        const danmuApiSiteKeys = new Set(
+          danmuApiSiteEntiries.map(([key]) => key)
+        );
+        adminConfig.DanmuConfig.forEach((source) => {
+          if (!danmuApiSiteKeys.has(source.key)) {
+            source.from = 'custom';
+          }
+        });
+
         const existedUsers = new Set(
           (adminConfig.UserConfig.Users || []).map((u) => u.username)
         );
