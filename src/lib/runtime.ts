@@ -81,6 +81,12 @@ export const config = {
       name: 'iKun资源',
     },
   },
+  danmu_api_site: {
+    netlify: {
+      api: 'https://exquisite-treacle-8c31e3.netlify.app/api/v2',
+      name: 'netlify',
+    },
+  },
 } as const;
 
 export type RuntimeConfig = typeof config;

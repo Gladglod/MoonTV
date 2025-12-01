@@ -136,6 +136,8 @@ async function initConfig() {
         });
 
         // 补全 DanmuConfig
+        console.log('damuconfig', adminConfig.DanmuConfig);
+        if (adminConfig.DanmuConfig == undefined) adminConfig.DanmuConfig = [];
         const danmuExisted = new Set(
           (adminConfig.DanmuConfig || []).map((s) => s.key)
         );
@@ -372,6 +374,7 @@ export async function resetConfig() {
   cachedConfig.SiteConfig = adminConfig.SiteConfig;
   cachedConfig.UserConfig = adminConfig.UserConfig;
   cachedConfig.SourceConfig = adminConfig.SourceConfig;
+  cachedConfig.DanmuConfig = adminConfig.DanmuConfig;
 }
 
 export async function getCacheTime(): Promise<number> {
