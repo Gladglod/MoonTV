@@ -320,6 +320,7 @@ export async function resetConfig() {
 
   // 从文件中获取源信息，用于补全源
   const apiSiteEntries = Object.entries(fileConfig.api_site);
+  const danmuApiSiteEntiries = Object.entries(fileConfig.api_site);
   let allUsers = userNames.map((uname) => ({
     username: uname,
     role: 'user',
@@ -347,6 +348,14 @@ export async function resetConfig() {
       Users: allUsers as any,
     },
     SourceConfig: apiSiteEntries.map(([key, site]) => ({
+      key,
+      name: site.name,
+      api: site.api,
+      detail: site.detail,
+      from: 'config',
+      disabled: false,
+    })),
+    DanmuConfig: danmuApiSiteEntiries.map(([key, site]) => ({
       key,
       name: site.name,
       api: site.api,
