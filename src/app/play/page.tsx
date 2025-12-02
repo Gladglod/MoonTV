@@ -19,7 +19,7 @@ import {
   savePlayRecord,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
-import { DanmuResult, SearchResult } from '@/lib/types';
+import { SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
 import EpisodeSelector from '@/components/EpisodeSelector';
@@ -51,11 +51,9 @@ function PlayPageClient() {
   const [favorited, setFavorited] = useState(false);
 
   // 弹幕url状态
-  const [danmuData, setDanmuData] = useState<DanmuResult[]>([]);
   const [danmuId, setDanmuId] = useState(0);
   const [danmuUrl, setDanmuUrl] = useState('');
   const danmuApi = 'https://exquisite-treacle-8c31e3.netlify.app/api/v2';
-  // const [danmuExist, setDanmuExist] = useState(false);
 
   // 去广告开关（从 localStorage 继承，默认 true）
   const [blockAdEnabled, setBlockAdEnabled] = useState<boolean>(() => {
@@ -510,29 +508,6 @@ function PlayPageClient() {
       }
     };
 
-    // 获取弹幕信息
-    const fetchDanmuData = async (query: string): Promise<DanmuResult[]> => {
-      try {
-        const response = await fetch(
-          `/api/danmu?q=${encodeURIComponent(query.trim())}`
-        );
-        if (!response.ok) {
-          throw new Error('搜索失败');
-        }
-        const data = await response.json();
-
-        if (data.length !== 0) {
-          return data.results;
-        }
-        return [];
-      } catch (error) {
-        console.log(error);
-        return [];
-      } finally {
-        // setDanmuExist(false);
-      }
-    };
-
     const initAll = async () => {
       if (!currentSource && !currentId && !videoTitle && !searchTitle) {
         setError('缺少必要参数');
@@ -553,9 +528,6 @@ function PlayPageClient() {
         setLoading(false);
         return;
       }
-      const danmuInfo = await fetchDanmuData(searchTitle || videoTitle);
-      setDanmuData(danmuInfo);
-      console.log(danmuData);
       let needLoadSource = currentSource;
       let needLoadId = currentId;
       if ((!currentSource && !currentId) || needPreferRef.current) {
@@ -902,11 +874,6 @@ function PlayPageClient() {
   };
 
   useEffect(() => {
-    // const buildUrl =  async () => {
-    //   const danmuApis = await getAvailableDanmuApiSites();
-    //   return danmuApis[0].api;
-    // }
-    // const api = buildUrl();
     if (danmuId > 0) {
       const url = `${danmuApi}/comment/${danmuId}?format=xml`;
       setDanmuUrl(url);
@@ -927,10 +894,6 @@ function PlayPageClient() {
   // 弹幕处理
   const handleDanmuChange = (danmuId: number) => {
     if (danmuId >= 0) {
-      // 在更换集数前保存当前播放进度
-      // if (artPlayerRef.current && artPlayerRef.current.paused) {
-      //   saveCurrentPlayProgress();
-      // }
       setDanmuId(danmuId);
     }
   };
@@ -1633,7 +1596,6 @@ function PlayPageClient() {
                 sourceSearchLoading={sourceSearchLoading}
                 sourceSearchError={sourceSearchError}
                 precomputedVideoInfo={precomputedVideoInfo}
-                danmuData={danmuData}
               />
             </div>
           </div>

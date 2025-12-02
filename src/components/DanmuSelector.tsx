@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useState } from 'react';
 
 import { DanmuResult, EpisodeItem } from '@/lib/types';
 
 interface DanmuSelectorProps {
-  danmuSources?: DanmuResult[];
+  videoTitle?: string;
   danmuSearchLoading?: boolean;
-  /** 当前选中的 episodeId（可选） */
+  /** 当前选中的 episodeId */
   value?: number;
   /** 选中 episodeId 后的回调 */
   onChange?: (episodeId: number) => void;
@@ -17,11 +17,44 @@ interface DanmuSelectorProps {
  * 样式和“换源”那一块保持一致：卡片式列表，当前选中项高亮
  */
 const DanmuSelector: React.FC<DanmuSelectorProps> = ({
-  danmuSources = [],
-  danmuSearchLoading,
+  videoTitle,
   value,
   onChange,
 }) => {
+  const [danmuSources, setDanmuSources] = useState<DanmuResult[]>([]);
+
+  // 获取弹幕信息
+  const fetchDanmuData = async (query: string): Promise<DanmuResult[]> => {
+    try {
+      const response = await fetch(
+        `/api/danmu?q=${encodeURIComponent(query.trim())}`
+      );
+      if (!response.ok) {
+        throw new Error('搜索失败');
+      }
+      const data = await response.json();
+
+      if (data) {
+        return data?.results;
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      const q = videoTitle;
+      if (!q) return;
+
+      const danmuInfo = await fetchDanmuData(q);
+      setDanmuSources(danmuInfo);
+    };
+
+    load();
+  }, [value, videoTitle]);
+
   /** 当前进入的源（null 表示正在显示源列表） */
   const [activeSource, setActiveSource] = useState<DanmuResult | null>(null);
 
@@ -39,18 +72,8 @@ const DanmuSelector: React.FC<DanmuSelectorProps> = ({
   };
   return (
     <div className='flex flex-col h-full'>
-      {/* 加载 */}
-      {danmuSearchLoading && (
-        <div className='flex items-center justify-center py-8'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-green-500' />
-          <span className='ml-2 text-sm text-gray-600 dark:text-gray-300'>
-            弹幕源搜索中…
-          </span>
-        </div>
-      )}
-
       {/* 无数据 */}
-      {!danmuSearchLoading && danmuSources.length === 0 && (
+      {danmuSources.length === 0 && (
         <div className='flex items-center justify-center py-8'>
           <div className='text-center'>
             <div className='text-gray-400 text-2xl mb-2'>💬</div>
@@ -64,7 +87,7 @@ const DanmuSelector: React.FC<DanmuSelectorProps> = ({
       {/* ============================ */}
       {/* 一级：源列表（anime 列表） */}
       {/* ============================ */}
-      {!danmuSearchLoading && !activeSource && danmuSources.length > 0 && (
+      {!activeSource && danmuSources.length > 0 && (
         <div className='flex-1 overflow-y-auto space-y-2 pb-4'>
           {danmuSources.map((source) => {
             return (

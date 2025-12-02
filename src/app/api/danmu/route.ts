@@ -43,29 +43,19 @@ export async function GET(request: Request) {
     const result = results.filter((r) => r.title.includes(query));
     const cacheTime = await getCacheTime();
 
-    if (result.length === 0) {
-      return NextResponse.json(
-        {
-          error: '未找到结果',
-          result: null,
+    return NextResponse.json(
+      { results: result },
+      {
+        headers: {
+          'Cache-Control': `public, max-age=${cacheTime}`,
         },
-        { status: 404 }
-      );
-    } else {
-      return NextResponse.json(
-        { results: result },
-        {
-          headers: {
-            'Cache-Control': `public, max-age=${cacheTime}`,
-          },
-        }
-      );
-    }
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       {
         error: '搜索失败',
-        result: null,
+        results: [],
       },
       { status: 500 }
     );

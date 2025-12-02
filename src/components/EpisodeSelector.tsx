@@ -9,7 +9,7 @@ import React, {
   useState,
 } from 'react';
 
-import { DanmuResult, SearchResult } from '@/lib/types';
+import { SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
 import DanmuSelector from '@/components/DanmuSelector';
@@ -43,7 +43,6 @@ interface EpisodeSelectorProps {
   sourceSearchError?: string | null;
   /** 预计算的测速结果，避免重复测速 */
   precomputedVideoInfo?: Map<string, VideoInfo>;
-  danmuData: DanmuResult[];
 }
 
 /**
@@ -63,7 +62,6 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   sourceSearchLoading = false,
   sourceSearchError = null,
   precomputedVideoInfo,
-  danmuData = [],
 }) => {
   const router = useRouter();
   const pageCount = Math.ceil(totalEpisodes / episodesPerPage);
@@ -75,10 +73,6 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   const [attemptedSources, setAttemptedSources] = useState<Set<string>>(
     new Set()
   );
-
-  // 弹幕信息
-  const [currentDanmuId, setCurrentDanmuId] = useState<number | undefined>();
-  const [danmuSearchLoading, setDanmuSearchLoading] = useState(false);
 
   // 使用 ref 来避免闭包问题
   const attemptedSourcesRef = useRef<Set<string>>(new Set());
@@ -92,10 +86,6 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   useEffect(() => {
     videoInfoMapRef.current = videoInfoMap;
   }, [videoInfoMap]);
-
-  useEffect(() => {
-    if (currentDanmuId) setDanmuSearchLoading(false);
-  }, [currentDanmuId]);
 
   // 主要的 tab 状态：'episodes' 或 'sources'
   // 当只有一集时默认展示 "换源"，并隐藏 "选集" 标签
@@ -612,14 +602,11 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
       {/* { 弹幕 Tab 内容 } */}
       {activeTab === 'danmu' && (
         <DanmuSelector
-          value={currentDanmuId} // 你在父组件里的 state
+          videoTitle={videoTitle}
+          value={value} // 第几集
           onChange={(id: number) => {
-            setCurrentDanmuId(id);
             handleDanmuClilck(id);
-            // 这里去切换弹幕源，或者通知播放器
           }}
-          danmuSources={danmuData} // fetchDanmuData 之后的结果
-          danmuSearchLoading={danmuSearchLoading}
         />
       )}
     </div>
